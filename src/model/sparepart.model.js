@@ -1,22 +1,15 @@
+// src/model/sparepart.model.js
 import mongoose from "mongoose";
 
-const sparePartSchema = new mongoose.Schema(
+const sparepartSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-    },
-    quantity: {
-      type: Number,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
+    name: { type: String, required: true },
+    brand: String,
+    stock: { type: Number, default: 0 },
+    buyPrice: Number,
+    sellPrice: Number,
   },
   { timestamps: true }
 );
 
-const SparePart = mongoose.model("SparePart", sparePartSchema);
-export default SparePart;
+export default mongoose.model("Sparepart", sparepartSchema);
