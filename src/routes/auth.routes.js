@@ -1,21 +1,17 @@
-const router = Router();
-import { authenticate } from "../../middlewares/auth.middleware";
-import { AuthController } from "../controller/auth.controller";
+import { Router } from "express";
+import authController from "../controller/auth.controller.js";
+import { authenticate } from "../middleware/auth.middleware.js";
 
-// Admin
-router.post("/admin/login", AuthController.login);
+const authRouter = Router();
 
-router.post("/logout", (req, res, next) => {
-  try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-    });
-    res.status(200).json({ message: "Logout berhasil" });
-  } catch (error) {
-    next(error);
-  }
-});
+authRouter.post("/login", authController.login);
+authRouter.post("/logout", authController.logout);
+authRouter.get("/user-current", authenticate, authController.get);
+authRouter.patch("/user-current", authenticate, authController.update);
+authRouter.patch(
+  "/change-password",
+  authenticate,
+  authController.changePassword
+);
 
-export default router;
+export { authRouter };

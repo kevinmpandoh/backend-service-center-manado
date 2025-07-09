@@ -1,40 +1,85 @@
-import User from "../model/user.model.js";
-import { generateToken } from "../utils/jwt.js";
-import { ResponseError } from "../utils/response.error.js";
-import { authValidation } from "../validation/auth.validation.js";
-import bcrypt from "bcryptjs";
+import authService from "../service/auth.service.js";
+import userService from "../service/user.service.js";
 
-export const AuthController = {
-  async login(req, res, next) {
-    try {
-      const { username, password } = validate(authValidation.login, req.body);
+const login = async (req, res, next) => {
+  try {
+    const token = await authService.login(req.body);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true, // hanya secure di production
+      sameSite: "none", // cross domain
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
+    });
+    res.json({
+      status: "success",
+      message: "Login berhasil",
+      token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-      const user = await User.findOne({ username });
+const logout = (req, res, next) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+    });
+    res.status(200).json({ status: "success", message: "Logout berhasil" });
+  } catch (error) {
+    next(error);
+  }
+};
 
-      if (!user) throw new ResponseError(401, "Email / Password salah");
+const get = async (req, res, next) => {
+  try {
+    const username = req.user.username;
+    const result = await userService.get(username);
 
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) throw new ResponseError(401, "Email/ Password salah");
+    res.status(200).json({
+      message: "Success",
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
 
-      const token = generateToken({
-        id: user._id,
-        username: user.username,
-        role: user.role,
-      });
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // hanya secure di production
-        sameSite: "none", // cross domain
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
-      });
+const update = async (req, res, next) => {
+  try {
+    const id = req.user._id; // 🔑 ambil user dari middleware
+    const updatedUser = await userService.update(id, req.body);
 
-      res.json({
-        status: "Success",
-        message: "Login berhasil",
-        data: admin,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
+    res.json({
+      status: "Success",
+      message: "Profil berhasil diperbarui",
+      data: updatedUser,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const changePassword = async (req, res, next) => {
+  try {
+    const id = req.user._id;
+    await authService.changePassword(id, req.body);
+
+    res.json({
+      status: "Success",
+      message: "Password berhasil diperbarui",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default {
+  login,
+  logout,
+  get,
+  update,
+  changePassword,
 };

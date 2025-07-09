@@ -1,23 +1,27 @@
 // middleware/authMiddleware.ts
 import { verifyToken } from "../utils/jwt.js";
-import { ResponseError } from "../utils/response.error.js";
+import { ResponseError } from "../utils/error.js";
 import User from "../model/user.model.js";
 
-export const authenticate = async () => {
+export const authenticate = async (req, res, next) => {
   try {
     const token = req.cookies.token;
 
     if (!token) throw new ResponseError(401, "Unauthorized");
-
     const decoded = verifyToken(token);
 
     if (!decoded) {
-      throw new ResponseError(404, "Unauthorized - Invalid Token");
+      throw new ResponseError(401, "Token tidak valid.");
     }
 
-    let user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id);
 
-    req.body.user = user;
+    if (!user) {
+      throw new ResponseError(404, "Pengguna tidak ditemukan.");
+    }
+
+    // Simpan user ke request agar bisa diakses oleh controller selanjutnya
+    req.user = user;
     next();
   } catch (error) {
     next(error);
@@ -26,11 +30,14 @@ export const authenticate = async () => {
 
 export const authorize = (roles) => {
   return (req, res, next) => {
-    if (!req.body.user) {
-      throw new ResponseError(403, "No User Found");
+    const user = req.user;
+
+    if (!user) {
+      throw new ResponseError(403, "Pengguna tidak ditemukan.");
     }
-    if (!roles.includes(req.body.user.role)) {
-      throw new ResponseError(403, "Access denied");
+
+    if (!roles.includes(user.role)) {
+      throw new ResponseError(403, "Akses ditolak.");
     }
 
     next();

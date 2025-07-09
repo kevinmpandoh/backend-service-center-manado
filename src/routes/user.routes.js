@@ -1,8 +1,15 @@
-import { UserController } from "../controller/user.controller.js";
 import express from "express";
+import usernameserController from "../controller/user.controller.js";
+import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import userController from "../controller/user.controller.js";
 
-const router = express.Router();
+const userRouter = express.Router();
 
-router.get("/", UserController.getAllUser);
+userRouter.use(authenticate, authorize(["admin"]));
 
-export default router;
+userRouter.get("/", userController.getAll);
+userRouter.post("/", userController.create);
+userRouter.put("/:id", userController.update);
+userRouter.delete("/:id", userController.deleteUser);
+
+export { userRouter };

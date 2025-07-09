@@ -1,13 +1,26 @@
 import Joi from "joi";
 
-export const authValidation = {
-  login: Joi.object({
-    email: Joi.string().email().required().messages({
-      "string.empty": "Email is required",
-      "string.email": "Invalid email format",
-    }),
-    password: Joi.string().required().messages({
-      "string.empty": "Password is required",
-    }),
+const login = Joi.object({
+  username: Joi.string().required().messages({
+    "string.empty": "Nama pengguna wajib diisi",
   }),
+  password: Joi.string().min(6).required().messages({
+    "string.empty": "Kata sandi wajib diisi",
+    "string.min": "Kata sandi minimal 6 karakter",
+  }),
+});
+
+const changePasswordSchema = Joi.object({
+  oldPassword: Joi.string().required().messages({
+    "string.empty": "Password lama wajib diisi",
+  }),
+  newPassword: Joi.string().min(6).required().messages({
+    "string.empty": "Password baru wajib diisi",
+    "string.min": "Password baru minimal 6 karakter",
+  }),
+});
+
+export default {
+  login,
+  changePasswordSchema,
 };
