@@ -5,6 +5,7 @@ import brandRouter from "./brand.routes.js";
 import deviceModelRouter from "./device-model.routes.js";
 import damageTypeRouter from "./damage-type.routes.js";
 import customerRouter from "./customer.routes.js";
+import deviceRouter from "./device.routes.js";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/brands", brandRouter);
 router.use("/device-models", deviceModelRouter);
 router.use("/damage-types", damageTypeRouter);
 router.use("/customers", customerRouter);
+router.use("/devices", deviceRouter);
 
 export default router;
