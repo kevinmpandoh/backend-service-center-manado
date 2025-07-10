@@ -8,10 +8,34 @@ const serviceDetailSchema = new mongoose.Schema(
       ref: "ServiceOrder",
       required: true,
     },
-    type: { type: String, enum: ["jasa", "sparepart"], required: true },
-    item: { type: String, required: true },
-    quantity: { type: Number, default: 1 },
-    price: { type: Number, required: true },
+    type: {
+      type: String,
+      enum: ["jasa", "sparepart"],
+      required: true,
+    },
+    serviceName: {
+      type: String,
+      required: function () {
+        return this.type === "jasa";
+      },
+    },
+    sparepart: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Sparepart",
+      required: function () {
+        return this.type === "sparepart";
+      },
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
   },
   { timestamps: true }
 );
