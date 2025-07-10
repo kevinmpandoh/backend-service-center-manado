@@ -12,10 +12,6 @@ const customerSchema = new mongoose.Schema(
     },
     email: String,
     address: String,
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
   },
   { timestamps: true }
 );
