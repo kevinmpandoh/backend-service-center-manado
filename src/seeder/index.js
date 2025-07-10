@@ -10,7 +10,7 @@ import { seedSpareparts } from "./sparepart.seeder.js";
 import { seedUsers } from "./user.seeder.js";
 import { seedCustomers } from "./customer.seeder.js";
 
-const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:27017/sashi";
+const MONGO_URL = process.env.MONGO_URI || "mongodb://localhost:27017/sashi";
 
 const runSeeder = async () => {
   try {
