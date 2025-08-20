@@ -1,9 +1,19 @@
 // src/service/service-detail.service.js
+import serviceDetailModel from "../model/service-detail.model.js";
+import serviceOrderModel from "../model/service-order.model.js";
 import repository from "../repository/service-detail.repository.js";
+import serviceItemRepository from "../repository/service-item.repository.js";
+import serviceOrderRepository from "../repository/service-order.repository.js";
 import sparepartRepository from "../repository/sparepart.repository.js";
 import { ResponseError } from "../utils/error.js";
 
-const create = async (data) => {
+const create = async (serviceId, data) => {
+  if (data.type === "jasa") {
+    const serviceItem = await serviceItemRepository.findById(data.service_item);
+    if (!serviceItem) throw new ResponseError(404, "Jasa tidak ditemukan");
+    data.price = serviceItem.price;
+  }
+
   if (data.type === "sparepart") {
     const sparepart = await sparepartRepository.findById(data.sparepart);
     if (!sparepart) {
@@ -22,8 +32,22 @@ const create = async (data) => {
     await sparepart.save();
     data.price = sparepart.sellPrice;
   }
+  const subtotal = data.price * data.quantity;
+  const detail = await repository.create({
+    ...data,
+    serviceOrder: serviceId,
+    subtotal,
+  });
 
-  return repository.create(data);
+  // update total cost order
+  const agg = await serviceDetailModel.aggregate([
+    { $match: { serviceOrder: detail.serviceOrder } },
+    { $group: { _id: "$serviceOrder", total: { $sum: "$subtotal" } } },
+  ]);
+  const total = agg[0]?.total || 0;
+  await serviceOrderRepository.update(serviceId, { totalCost: total });
+
+  return detail;
 };
 
 const getAll = async ({ page = 1, limit = 20, serviceOrder }) => {
@@ -55,9 +79,16 @@ const getById = async (id) => {
   if (!data) throw new ResponseError(404, "Detail layanan tidak ditemukan");
   return data;
 };
+const getByServiceOrderId = async (id) => {
+  const data = await repository.findOne({
+    service_item: id,
+  });
+  if (!data) throw new ResponseError(404, "Detail layanan tidak ditemukan");
+  return data;
+};
 
 const update = async (id, data) => {
-  const existing = await serviceDetailRepository.findById(id);
+  const existing = await repository.findById(id);
   if (!existing) {
     throw new ResponseError(404, "Detail layanan tidak ditemukan");
   }
@@ -93,7 +124,7 @@ const update = async (id, data) => {
     data.price = sparepart.sellPrice;
   }
 
-  return serviceDetailRepository.update(id, data);
+  return repository.update(id, data);
 };
 
 const remove = async (id) => {
@@ -106,6 +137,7 @@ export default {
   create,
   getAll,
   getById,
+  getByServiceOrderId,
   update,
   remove,
 };

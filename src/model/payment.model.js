@@ -9,12 +9,17 @@ const paymentSchema = new mongoose.Schema(
       required: true,
     },
     amount: { type: Number, required: true },
-    method: { type: String, enum: ["cash", "transfer"], default: "cash" },
+    method: { type: String, enum: ["CASH", "TRANSFER"], default: "CASH" },
+    type: {
+      type: String,
+      enum: ["DP", "FULL"],
+      default: "FULL",
+    },
     proofImage: String, // URL/file path to proof (jika transfer)
     status: {
       type: String,
-      enum: ["pending", "paid", "failed"],
-      default: "pending",
+      enum: ["PENDING", "PAID", "FAILED"],
+      default: "PAID",
     },
     paidAt: { type: Date, default: Date.now },
   },

@@ -10,12 +10,11 @@ const objectId = (value, helpers) => {
 };
 
 export const createServiceDetailSchema = Joi.object({
-  serviceOrder: Joi.string().custom(objectId).required(),
   type: Joi.string().valid("jasa", "sparepart").required(),
-  serviceName: Joi.string().when("type", {
+  service_item: Joi.string().when("type", {
     is: "jasa",
-    then: Joi.string().required().messages({
-      "string.empty": "Nama layanan wajib diisi",
+    then: Joi.string().custom(objectId).required().messages({
+      "any.invalid": "ID Jasa tidak valid",
     }),
     otherwise: Joi.forbidden(),
   }),

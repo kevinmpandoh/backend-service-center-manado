@@ -10,8 +10,6 @@ const customerSchema = new mongoose.Schema(
       type: String,
       required: [true, "Nomor HP wajib diisi"],
     },
-    email: String,
-    address: String,
   },
   { timestamps: true }
 );

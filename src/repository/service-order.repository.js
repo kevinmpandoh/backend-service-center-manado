@@ -5,7 +5,20 @@ const create = (data) => ServiceOrder.create(data);
 
 const find = (query = {}, skip = 0, limit = 10) =>
   ServiceOrder.find(query)
-    .populate("device technician")
+    .populate({
+      path: "device",
+      populate: [
+        {
+          path: "brand",
+        },
+        {
+          path: "model",
+        },
+        {
+          path: "customer",
+        },
+      ],
+    })
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });

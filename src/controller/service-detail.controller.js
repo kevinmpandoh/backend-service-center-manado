@@ -9,7 +9,7 @@ import {
 export const create = async (req, res, next) => {
   try {
     const data = validate(createServiceDetailSchema, req.body);
-    const result = await service.create(data);
+    const result = await service.create(req.params.id, data);
     res
       .status(201)
       .json({ message: "Detail layanan ditambahkan", data: result });
@@ -31,6 +31,15 @@ export const getAll = async (req, res, next) => {
 export const getById = async (req, res, next) => {
   try {
     const result = await service.getById(req.params.id);
+    res.json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getByServiceOrderId = async (req, res, next) => {
+  try {
+    const result = await service.getByServiceOrderId(req.params.serviceOrderId);
     res.json({ data: result });
   } catch (error) {
     next(error);

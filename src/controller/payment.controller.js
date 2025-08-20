@@ -1,17 +1,51 @@
 // src/controller/payment.controller.js
 import paymentService from "../service/payment.service.js";
+import {
+  addPaymentDPSchema,
+  addPaymentFinalSchema,
+  addPaymentSchema,
+} from "../validation/payment.validation.js";
+import { validate } from "../validation/validate.js";
 
 const create = async (req, res, next) => {
   try {
-    const data = req.body;
-    if (req.file) {
-      data.proofImage = `/uploads/payments/${req.file.filename}`;
-    }
+    const data = validate(addPaymentSchema, req.body);
+    const orderId = req.params.orderId;
 
-    const result = await paymentService.create(data);
+    const result = await paymentService.create(orderId, data, req.file);
     res
       .status(201)
       .json({ message: "Pembayaran berhasil dibuat", data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+const addPaymentDP = async (req, res, next) => {
+  try {
+    const data = validate(addPaymentDPSchema, req.body);
+    const orderId = req.params.orderId;
+
+    const result = await paymentService.addPaymentDP(orderId, data, req.file);
+    res
+      .status(201)
+      .json({ message: "Pembayaran DP berhasil dibuat", data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+const addPaymentFinal = async (req, res, next) => {
+  try {
+    const data = validate(addPaymentFinalSchema, req.body);
+    const orderId = req.params.orderId;
+
+    const result = await paymentService.addPaymentFinal(
+      orderId,
+      data,
+      req.file
+    );
+    res
+      .status(201)
+      .json({ message: "Pembayaran Final berhasil dibuat", data: result });
   } catch (err) {
     next(err);
   }
@@ -74,6 +108,8 @@ const remove = async (req, res, next) => {
 
 export default {
   create,
+  addPaymentDP,
+  addPaymentFinal,
   findAll,
   findById,
   getReceipt,
