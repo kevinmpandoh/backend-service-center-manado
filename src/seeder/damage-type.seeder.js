@@ -20,14 +20,14 @@ export const seedDamageTypes = async () => {
     { name: "Ganti Flexible ON/OFF", applicableTo: ["HP"] },
     { name: "Ganti Mic/Board", applicableTo: ["HP"] },
     { name: "Error/Hang", applicableTo: ["HP", "Laptop", "Tablet"] },
-    { name: "Lainnya", applicableTo: ["HP", "Laptop", "Tablet"] },
+    { name: "Lainnya", applicableTo: ["HP", "Laptop", "Tablet", "Jam"] },
 
-    { name: "Pasang LCD", applicableTo: ["HP", "Laptop", "Tablet"] },
-    { name: "Lem LCD", applicableTo: ["HP"] },
-    { name: "Ganti Tombol", applicableTo: ["HP"] },
-    { name: "Ganti Papan Charge", applicableTo: ["HP"] },
-    { name: "Virus", applicableTo: ["HP", "Laptop"] },
-    { name: "Koslet", applicableTo: ["HP", "Laptop"] },
+    // { name: "Pasang LCD", applicableTo: ["HP", "Laptop", "Tablet"] },
+    // { name: "Lem LCD", applicableTo: ["HP"] },
+    // { name: "Ganti Tombol", applicableTo: ["HP"] },
+    // { name: "Ganti Papan Charge", applicableTo: ["HP"] },
+    // { name: "Virus", applicableTo: ["HP", "Laptop"] },
+    // { name: "Koslet", applicableTo: ["HP", "Laptop"] },
   ];
 
   await DamageType.deleteMany();

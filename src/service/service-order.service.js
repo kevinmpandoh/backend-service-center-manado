@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration.js";
+import damageTypeRepository from "../repository/damage-type.repository.js";
 dayjs.extend(duration);
 
 const create = async (technicianId, data) => {
@@ -670,7 +671,7 @@ const exportFinishedOrders = async (query) => {
 
 const generateInvoice = async (orderId) => {
   const order = await serviceOrderRepository.findById(orderId);
-  if (!order) throw new Error("Service order tidak ditemukan");
+  if (!order) throw new ResponseError(404, "Service order tidak ditemukan");
 
   const doc = new PDFDocument({ margin: 40, size: "A4" });
   const buffers = [];
@@ -678,31 +679,85 @@ const generateInvoice = async (orderId) => {
 
   // ========== HEADER ==========
   const logoPath = path.resolve("public/logo.jpg");
+  const location = path.resolve("public/icons/location.png");
+  const phone = path.resolve("public/icons/phone.png");
+  const facebook = path.resolve("public/icons/facebook.png");
+  const instagram = path.resolve("public/icons/instagram.png");
+  const whatsapp = path.resolve("public/icons/whatsapp.png");
+
+  const iconSize = 10;
+  let headerY = 55;
+
   if (fs.existsSync(logoPath)) {
     doc.image(logoPath, 40, 30, { width: 60 });
+
+    doc.save();
+
+    // Set transparansi (supaya jadi watermark)
+    doc.opacity(0.1);
+
+    // Tempatkan logo di tengah halaman dengan ukuran besar
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const logoWidth = pageWidth * 0.9; // 90% dari lebar halaman
+    doc.image(logoPath, (pageWidth - logoWidth) / 2, pageHeight / 6, {
+      width: logoWidth,
+    });
+
+    // Balikin opacity & grafik state
+    doc.opacity(1);
+    doc.restore();
   }
 
   doc
     .fontSize(16)
     .text("PUSAT SERVICE", 120, 35, { continued: true })
-    .fontSize(14)
+    .fontSize(16)
     .text(" HANDPHONE - LAPTOP");
+
+  doc.image(location, 120, headerY, {
+    width: iconSize,
+  });
   doc
     .fontSize(9)
-    .text("Ruko Kawasan Megamas, JL. Pierre Tendean Blok 1A1 no 26", 120, 55);
-  doc.text("Telp/WA: 0811-4377-700", 120, 70);
+    .text(
+      "Ruko Kawasan Megamas, JL. Pierre Tendean Blok 1A1 no 26",
+      135,
+      headerY
+    );
+
+  // ====== TELEPON ======
+  headerY += 15;
+  doc.image(phone, 120, headerY, {
+    width: iconSize,
+  });
+  doc.fontSize(9).text("0811-4377-700", 135, headerY);
 
   // ===== SOSIAL MEDIA =====
-  doc
-    .font("Helvetica")
-    .fontSize(10)
-    .text("IG: @namatoko   |   FB: fb.com/namatoko", 200, 95);
+  // ====== IG ======
+  headerY += 20;
+  doc.image(instagram, 120, headerY, {
+    width: iconSize,
+  });
+  doc.fontSize(10).text("@namatoko", 135, headerY);
+
+  // ====== FB ======
+  doc.image(facebook, 220, headerY, {
+    width: iconSize,
+  });
+  doc.fontSize(10).text("fb.com/namatoko", 235, headerY);
+
+  // WA
+  doc.image(whatsapp, 320, headerY, {
+    width: iconSize,
+  });
+  doc.fontSize(10).text("0895128371823", 335, headerY);
 
   doc
     .fontSize(14)
-    .text("NOTA SERVICE", 450, 40, { align: "right" })
+    .text("NOTA SERVICE", 450, 35, { align: "right" })
     .fontSize(10)
-    .text(`No Nota : ${order._id}`, 450, 60, { align: "right" });
+    .text(`No Nota : ${order._id}`, 450, 55, { align: "right" });
 
   doc.moveDown(4);
 
@@ -746,31 +801,32 @@ const generateInvoice = async (orderId) => {
   doc.moveDown(2);
 
   // ========== KERUSAKAN ==========
-  doc.fontSize(11).text("KERUSAKAN", { underline: true });
-  const checkItems = [
-    "Software",
-    "Hardware",
-    "Mati Total",
-    "Masuk Air",
-    "IC Charge",
-    "IC Gambar",
-    "Ganti Baterai",
-    "Ganti LCD",
-    "Buka Pola/PIN/Passw",
-    "Mic/Audio",
-    "Speaker",
-    "Fuse Baterai",
-    "Connector Charge",
-    "No Charging",
-    "Flexi On/Off/Volume",
-    "Flexi Mic/Board",
-    "Error/Hang",
-    "Lainnya",
-  ];
+  doc.fontSize(16).text("KERUSAKAN", { underline: true });
+
+  let damageList = await damageTypeRepository.find({}, {}, 20);
+
+  damageList = damageList.sort((a, b) => {
+    if (a.name.toLowerCase() === "lainnya") return 1;
+    if (b.name.toLowerCase() === "lainnya") return -1;
+    return 0;
+  });
+
+  const orderDamages = Array.isArray(order.damage)
+    ? order.damage.map((d) => d.name.toLowerCase())
+    : order.damage?.name
+    ? [order.damage.name.toLowerCase()]
+    : [];
 
   let startY = doc.y + 5;
   const colWidth = 180;
-  checkItems.forEach((item, idx) => {
+
+  const hasMatch = damageList.some(
+    (damage) =>
+      damage.name.toLowerCase() !== "lainnya" &&
+      orderDamages.includes(damage.name.toLowerCase())
+  );
+
+  damageList.forEach((damage, idx) => {
     const col = idx % 3;
     const row = Math.floor(idx / 3);
     const x = 40 + col * colWidth;
@@ -778,11 +834,16 @@ const generateInvoice = async (orderId) => {
 
     doc.rect(x, y, 10, 10).stroke();
 
-    let checked = order.serviceDetails.some(
-      (d) =>
-        d.type === "jasa" &&
-        d.service_item?.name?.toLowerCase().includes(item.toLowerCase())
-    );
+    let checked = false;
+
+    if (damage.name.toLowerCase() === "lainnya") {
+      // hanya centang "lainnya" kalau memang tidak ada match sama sekali
+      checked = !hasMatch;
+    } else {
+      // centang normal kalau ada di order
+      checked = orderDamages.includes(damage.name.toLowerCase());
+    }
+
     if (checked) {
       doc
         .moveTo(x, y)
@@ -793,43 +854,58 @@ const generateInvoice = async (orderId) => {
         .lineTo(x, y + 10)
         .stroke();
     }
-    doc.text(item, x + 15, y - 2);
-  });
 
+    doc.fontSize(12).text(damage.name, x + 15, y - 2);
+  });
   doc.moveDown(20);
 
-  // ========== BIAYA ==========
-  const biayaX = 350;
-  let biayaY = 350;
+  // ========== BIAYA DAN SYARAT ==========
+  doc.fontSize(12).text("BIAYA :", 40, 350);
 
-  doc
-    .fontSize(11)
-    .text(
-      `Biaya Total : Rp ${order.totalCost.toLocaleString("id-ID")}`,
-      biayaX,
-      biayaY
-    );
-  biayaY += 15;
-  doc.text(
-    `Dibayar     : Rp ${order.totalPaid.toLocaleString("id-ID")}`,
-    biayaX,
-    biayaY
-  );
-  biayaY += 15;
-  doc.text(
-    `Sisa        : Rp ${(order.totalCost - order.totalPaid).toLocaleString(
-      "id-ID"
-    )}`,
-    biayaX,
-    biayaY
-  );
+  let biayaStartY = 350 + 20;
 
-  // ===== Bagian GARANSI (kiri) =====
-  let garansiY = 350;
+  // Kotak syarat & ketentuan
+  const boxX = 40;
+  const boxY = biayaStartY;
+  const boxWidth = 250;
+  const boxHeight = 200;
+
+  doc.rect(boxX, boxY, boxWidth, boxHeight).stroke();
   doc
-    .font("Helvetica-Bold")
-    .text("GARANSI:", 40, garansiY, { underline: true });
-  garansiY += 20;
+    .fontSize(10)
+    .fillColor("red")
+    .text("Syarat dan Ketentuan :", boxX + 5, boxY + 5);
+
+  const terms = [
+    "Kami tidak bertanggung jawab atas kehilangan kontak/nomor telepon dan data yang tersimpan di dalam handphone.",
+    "Pastikan tidak meninggalkan SIM CARD & MEMORI CARD anda.",
+    "Penggantian LCD dan Software TIDAK BERGARANSI (kecuali ada kesepakatan).",
+    "Garansi berlaku rusak kerusakan yang sama, non garansi part basah atau terbakar.",
+    "Garansi LCD dan BATERAI tidak termasuk cacat fisik (pecah/retak/basah/air/bengkak).",
+    "Jika dalam satu bulan unit tidak diambil maka bukan lagi menjadi tanggung jawab kami.",
+  ];
+
+  let termY = boxY + 20;
+  terms.forEach((t, i) => {
+    doc.fontSize(10).text(`${i + 1}. ${t}`, boxX + 5, termY, {
+      width: boxWidth - 10,
+      align: "justify",
+    });
+
+    termY = doc.y + 3;
+  });
+
+  // ========== GARANSI & KELENGKAPAN ==========
+  const rightColX = 320;
+  let rightY = biayaStartY;
+  const rightSectionWidth = 200;
+
+  // GARANSI
+  doc.fontSize(12).fillColor("black").text("GARANSI", rightColX, rightY, {
+    width: rightSectionWidth,
+    align: "center",
+  });
+  rightY += 25;
 
   const garansiOptions = [
     "7 HARI",
@@ -838,58 +914,52 @@ const generateInvoice = async (orderId) => {
     "90 HARI",
     "NON GARANSI",
   ];
-  garansiOptions.forEach((opt, i) => {
-    const col = i % 2 === 0 ? 40 : 200; // bikin 2 kolom
-    const row = Math.floor(i / 2);
-    doc.rect(col, garansiY + row * 20, 10, 10).stroke();
-    doc.text(opt, col + 15, garansiY + row * 20);
+  garansiOptions.forEach((opt, idx) => {
+    const x = rightColX + (idx % 2) * 130;
+    const y = rightY + Math.floor(idx / 2) * 25;
+
+    doc.rect(x, y, 10, 10).stroke();
+    doc.fontSize(12).text(opt, x + 15, y - 2);
   });
 
-  // ========== KELENGKAPAN ==========
-  let kelengkapanY = garansiY + 80;
-  doc
-    .font("Helvetica-Bold")
-    .text("KELENGKAPAN:", 40, kelengkapanY, { underline: true });
-  kelengkapanY += 20;
+  rightY += 80;
 
-  const items = ["SIM CARD", "BATERAI", "CASING/CASE", "MMC"];
-  items.forEach((item, i) => {
-    const col = i % 2 === 0 ? 40 : 200; // 2 kolom juga
-    const row = Math.floor(i / 2);
-    doc.rect(col, kelengkapanY + row * 20, 10, 10).stroke();
-    doc.text(item, col + 15, kelengkapanY + row * 20);
+  // KELENGKAPAN
+  doc.fontSize(12).text("KELENGKAPAN", rightColX, rightY, {
+    width: rightSectionWidth,
+    align: "center",
   });
-  doc.moveDown(4);
+  rightY += 25;
 
-  // ========== SYARAT & KETENTUAN ==========
-  // ===== SYARAT & KETENTUAN =====
-  let termsY = 550; // sesuaikan posisi terakhir layout
-  doc.font("Helvetica-Bold").text("SYARAT & KETENTUAN:", 40, termsY);
-  termsY += 20;
+  const kelengkapanOptions = ["SIM CARD", "BATERAI", "CASING/CASE", "MMC"];
+  kelengkapanOptions.forEach((opt, idx) => {
+    const x = rightColX + (idx % 2) * 130;
+    const y = rightY + Math.floor(idx / 2) * 25;
 
-  const terms = [
-    "Barang yang tidak diambil dalam 30 hari bukan tanggung jawab kami.",
-    "Klaim garansi wajib membawa nota ini.",
-    "Garansi tidak berlaku bila segel rusak / hp terkena cairan.",
-    "Data pribadi bukan tanggung jawab kami jika hilang.",
-  ];
-
-  doc.font("Helvetica").fontSize(10);
-  terms.forEach((term, i) => {
-    doc.text(`${i + 1}. ${term}`, 50, termsY);
-    termsY += 15;
+    doc.rect(x, y, 10, 10).stroke();
+    doc.fontSize(12).text(opt, x + 15, y - 2);
   });
+
+  rightY += 80;
+
+  // Tanda tangan
+  // doc.fontSize(11).text("User", rightColX, rightY);
+  // doc.text("Pihak Toko", rightColX + 150, rightY);
 
   // ===== FOOTER (TTD) =====
-  let footerY = termsY + 30;
+  let footerY = rightY + 30;
   doc.font("Helvetica").fontSize(11);
-  doc.text("Hormat Kami,", 60, footerY);
-  doc.text("Konsumen,", 350, footerY);
+  doc.text("Hormat Kami,", rightColX, rightY);
+  doc.text("Konsumen,", rightColX + 150, rightY);
 
   footerY += 60;
-  doc.text("(_________________)", 50, footerY);
-  doc.text("(_________________)", 340, footerY);
+  doc.text("(____________)", rightColX - 10, rightY + 60);
+  doc.text(`(____________)`, rightColX + 140, rightY + 60);
 
+  doc
+    .fontSize(14)
+    .font("Times-Italic")
+    .text("Terima Kasih atas Kepercayaannya.", 40, rightY + 20);
   doc.end();
 
   return new Promise((resolve, reject) => {
