@@ -22,16 +22,13 @@ const deviceSchema = new mongoose.Schema(
       ref: "DeviceModel",
       required: true,
     },
-    serialNumber: {
+
+    // Kelengkapan hp misalnya charger, dus, dll
+    completeness: {
       type: String,
-      default: "",
+      default: "Lengkap",
     },
-    damageIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "DamageType" }],
-    customDamageNote: String,
-    notes: {
-      type: String,
-      default: "", // Keluhan pelanggan
-    },
+
     isDeleted: {
       type: Boolean,
       default: false,

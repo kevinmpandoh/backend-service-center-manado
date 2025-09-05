@@ -28,7 +28,15 @@ const login = async (data) => {
     role: user.role,
   });
 
-  return token;
+  return {
+    token,
+    user: {
+      username: user.username,
+      name: user.name,
+      profilePicture: user.profilePicture,
+      role: user.role,
+    },
+  };
 };
 
 const changePassword = async (id, data) => {

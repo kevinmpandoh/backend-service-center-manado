@@ -3,6 +3,8 @@ import userValidation from "../validation/user.validation.js";
 import { validate } from "../validation/validate.js";
 import userRepository from "../repository/user.repository.js";
 import bcrypt from "bcryptjs";
+import { deleteFromCloud, streamUpload } from "../config/cloudinary.js";
+import { ResponseError } from "../utils/error.js";
 
 const getAll = async (params = {}) => {
   const {
@@ -24,6 +26,7 @@ const getAll = async (params = {}) => {
       { email: { $regex: searchRegex } },
       { name: { $regex: searchRegex } },
     ],
+    role: { $ne: "admin" },
   };
 
   if (role) {
@@ -98,6 +101,28 @@ const update = async (id, data) => {
   return userWithoutPassword;
 };
 
+const updatePhoto = async (userId, file) => {
+  if (!file) throw new ResponseError(400, "Foto belum diupload");
+
+  const uploadResult = await streamUpload(file.buffer, "profile");
+  const user = await userRepository.updateById(userId, {
+    profilePicture: uploadResult.url,
+  });
+
+  return { photo: user.profilePicture };
+};
+
+const deletePhoto = async (userId) => {
+  const user = await userRepository.findById(userId);
+  if (!user.profilePicture) throw new Error("Foto profile belum ada");
+
+  await deleteFromCloud(user.profilePicture);
+  user.profilePicture = null;
+  await user.save();
+
+  return { message: "Foto profile berhasil dihapus" };
+};
+
 const remove = async (id) => {
   const user = await userRepository.findById(id);
   if (!user) throw new ResponseError(404, "Pengguna tidak ditemukan");
@@ -111,5 +136,7 @@ export default {
   getAll,
   create,
   update,
+  updatePhoto,
   remove,
+  deletePhoto,
 };

@@ -9,13 +9,10 @@ const paymentSchema = new mongoose.Schema(
       required: true,
     },
     amount: { type: Number, required: true },
-    method: { type: String, enum: ["cash", "transfer"], default: "cash" },
-    proofImage: String, // URL/file path to proof (jika transfer)
-    status: {
-      type: String,
-      enum: ["pending", "paid", "failed"],
-      default: "pending",
-    },
+    method: { type: String, enum: ["cash", "transfer"], required: true },
+    amount: { type: Number, required: true },
+    paymentProof: { type: String }, // simpan URL Cloudinary kalau transfer
+    isDownPayment: { type: Boolean, default: false },
     paidAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

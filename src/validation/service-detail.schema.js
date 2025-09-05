@@ -10,15 +10,26 @@ const objectId = (value, helpers) => {
 };
 
 export const createServiceDetailSchema = Joi.object({
-  serviceOrder: Joi.string().custom(objectId).required(),
   type: Joi.string().valid("jasa", "sparepart").required(),
-  serviceName: Joi.string().when("type", {
+  // Kalau jasa: bisa pilih serviceItem dari DB atau isi manual
+  serviceItem: Joi.string().when("type", {
     is: "jasa",
-    then: Joi.string().required().messages({
-      "string.empty": "Nama layanan wajib diisi",
-    }),
+    then: Joi.allow("").optional(),
     otherwise: Joi.forbidden(),
   }),
+
+  customServiceName: Joi.string().when("type", {
+    is: "jasa",
+    then: Joi.optional(),
+    otherwise: Joi.forbidden(),
+  }),
+
+  customPrice: Joi.number().when("type", {
+    is: "jasa",
+    then: Joi.optional(),
+    otherwise: Joi.forbidden(),
+  }),
+
   sparepart: Joi.string().when("type", {
     is: "sparepart",
     then: Joi.string().custom(objectId).required().messages({
@@ -26,15 +37,20 @@ export const createServiceDetailSchema = Joi.object({
     }),
     otherwise: Joi.forbidden(),
   }),
-  quantity: Joi.number().min(1).default(1),
-  price: Joi.number().min(0).required().messages({
-    "number.base": "Harga wajib berupa angka",
-  }),
+  quantity: Joi.number()
+    .min(1)
+    .when("type", { is: "sparepart", then: Joi.required() }),
 });
 
 export const updateServiceDetailSchema = Joi.object({
-  type: Joi.string().valid("jasa", "sparepart"),
-  item: Joi.string(),
+  // type tidak bisa diubah
   quantity: Joi.number().min(1),
-  price: Joi.number().min(0),
+
+  // Update jasa
+  serviceItem: Joi.string(),
+  customServiceName: Joi.string(),
+  customPrice: Joi.number(),
+
+  // Update sparepart
+  sparepart: Joi.string(),
 });

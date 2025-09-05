@@ -1,11 +1,19 @@
 import { Router } from "express";
 import authController from "../controller/auth.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
+import { upload } from "../middleware/upload.middleware.js";
 
 const authRouter = Router();
 
 authRouter.post("/login", authController.login);
 authRouter.post("/logout", authController.logout);
+authRouter.post(
+  "/upload-photo",
+  authenticate,
+  upload.single("photo"),
+  authController.updatePhoto
+);
+authRouter.delete("/delete-photo", authenticate, authController.deletePhoto);
 authRouter.get("/user-current", authenticate, authController.get);
 authRouter.patch("/user-current", authenticate, authController.update);
 authRouter.patch(

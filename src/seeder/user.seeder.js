@@ -5,7 +5,7 @@ import User from "../model/user.model.js";
 export const seedUsers = async () => {
   const users = [
     {
-      name: "Admin Utama",
+      name: "Admin",
       username: "admin",
       password: await bcrypt.hash("password", 10),
       role: "admin",
