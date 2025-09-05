@@ -7,7 +7,11 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get("/teknisi", authorize(["teknisi"]), dashboardController.technician);
-router.get("/sparepart", dashboardController.sparepart);
-router.get("/admin", dashboardController.admin);
+router.get(
+  "/sparepart",
+  authorize(["sparepart"]),
+  dashboardController.sparepart
+);
+router.get("/admin", authorize(["admin"]), dashboardController.admin);
 
 export default router;

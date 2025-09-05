@@ -2,8 +2,10 @@
 import { Router } from "express";
 import paymentController from "../controller/payment.controller.js";
 import { upload } from "../middleware/upload.middleware.js";
+import { authenticate } from "../middleware/auth.middleware.js";
 
 const router = Router();
+router.use(authenticate);
 
 router.get("/", paymentController.findAll);
 router.post("/upload", upload.single("proofImage"), paymentController.upload);

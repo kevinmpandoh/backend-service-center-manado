@@ -25,12 +25,14 @@ export const create = async (req, res, next) => {
 
 export const getFinishedOrders = async (req, res, next) => {
   try {
-    const { page, limit, status, q } = req.query;
+    const { page, limit, status, q, startDate, endDate } = req.query;
     const result = await serviceOrderService.getFinishedOrders({
       page,
       limit,
       status,
       search: q,
+      startDate,
+      endDate,
     });
     res.json(result);
   } catch (error) {
@@ -40,16 +42,27 @@ export const getFinishedOrders = async (req, res, next) => {
 
 export const exportFinishedOrders = async (req, res, next) => {
   try {
-    const buffer = await serviceOrderService.exportFinishedOrders(req.query);
+    const { format = "xlsx" } = req.query;
+    const { buffer } = await serviceOrderService.exportFinishedOrders(
+      req.query
+    );
 
-    res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=service-orders-finished.xlsx"
-    );
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
+    if (format === "pdf") {
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=service-orders-finished.pdf"
+      );
+      res.setHeader("Content-Type", "application/pdf");
+    } else {
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=service-orders-finished.xlsx"
+      );
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+    }
 
     res.send(buffer);
   } catch (err) {

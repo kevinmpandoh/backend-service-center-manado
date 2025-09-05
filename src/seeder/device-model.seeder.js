@@ -17,6 +17,7 @@ export const seedDeviceModels = async () => {
       ],
     },
     { brand: "Huawei", type: "HP", models: ["Honor", "Nova 5T", "Y7"] },
+    { brand: "Iphone", type: "HP", models: ["XR", "14 Pro Max", "15 Pro Max"] },
     {
       brand: "Xiaomi",
       type: "HP",

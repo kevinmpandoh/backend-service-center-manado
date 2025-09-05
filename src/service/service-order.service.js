@@ -324,14 +324,30 @@ const getAll = async ({ page = 1, limit = 10, search = "", status }) => {
   };
 };
 
-const getFinishedOrders = async ({ page = 1, limit = 10, search = "" }) => {
+const getFinishedOrders = async ({
+  page = 1,
+  limit = 10,
+  search = "",
+  startDate,
+  endDate,
+}) => {
   page = parseInt(page, 10);
   limit = parseInt(limit, 10);
   const skip = (page - 1) * limit;
 
   const pipeline = [
     {
-      $match: { status: "selesai" }, // bisa tambahin "siap_diambil" pakai $in
+      $match: {
+        status: "selesai",
+        ...(startDate && endDate
+          ? {
+              completedAt: {
+                $gte: dayjs(startDate).startOf("day").toDate(),
+                $lte: dayjs(endDate).endOf("day").toDate(),
+              },
+            }
+          : {}),
+      }, // bisa tambahin "siap_diambil" pakai $in
     },
     {
       $lookup: {
@@ -538,34 +554,118 @@ const updateWarranty = async (id, data) => {
 
 const exportFinishedOrders = async (query) => {
   const { data } = await getFinishedOrders(query);
+  const { format = "excel" } = query;
 
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("Finished Orders");
+  if (format === "excel") {
+    // --- Excel export ---
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Finished Orders");
 
-  worksheet.columns = [
-    { header: "No", key: "no", width: 5 },
-    { header: "Pelanggan", key: "customer", width: 25 },
-    { header: "Perangkat", key: "device", width: 20 },
-    { header: "Kerusakan", key: "damage", width: 25 },
-    { header: "Waktu Perbaikan", key: "repairTime", width: 20 },
-    { header: "Biaya", key: "cost", width: 15 },
-    { header: "Status", key: "status", width: 15 },
-  ];
+    worksheet.columns = [
+      { header: "No", key: "no", width: 5 },
+      { header: "Pelanggan", key: "customer", width: 25 },
+      { header: "Perangkat", key: "device", width: 20 },
+      { header: "Kerusakan", key: "damage", width: 25 },
+      { header: "Waktu Perbaikan", key: "repairTime", width: 20 },
+      { header: "Biaya", key: "cost", width: 15 },
+      { header: "Status", key: "status", width: 15 },
+    ];
 
-  data.forEach((o, idx) => {
-    worksheet.addRow({
-      no: idx + 1,
-      customer: `${o.customer?.name} (${o.customer?.phone})`,
-      device: o.device,
-      damage: o.damage,
-      repairTime: o.repairTime,
-      cost: o.cost,
-      status: o.status,
+    data.forEach((o, idx) => {
+      worksheet.addRow({
+        no: idx + 1,
+        customer: `${o.customerName} (${o.customerPhone})`,
+        device: o.deviceModel,
+        damage: o.damage,
+        repairTime: o.repairTime,
+        cost: o.totalCost,
+        status: o.status,
+      });
     });
-  });
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  return buffer;
+    const buffer = await workbook.xlsx.writeBuffer();
+    return { buffer, format: "xlsx" };
+  } else if (format === "pdf") {
+    // --- PDF export ---
+    const doc = new PDFDocument({ margin: 30, size: "A4" });
+    const chunks = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    const endPromise = new Promise((resolve) =>
+      doc.on("end", () => resolve(Buffer.concat(chunks)))
+    );
+
+    // Judul
+    doc.fontSize(16).text("Laporan Service Orders - Finished", {
+      align: "center",
+    });
+    doc.moveDown(1.5);
+
+    // definisi kolom
+    const tableTop = 100;
+    const colWidths = [30, 120, 100, 100, 90, 70, 60]; // total < A4 width
+    const colX = [];
+    let x = doc.page.margins.left;
+    colWidths.forEach((w) => {
+      colX.push(x);
+      x += w;
+    });
+
+    // header
+    const headers = [
+      "No",
+      "Pelanggan",
+      "Perangkat",
+      "Kerusakan",
+      "Waktu",
+      "Biaya",
+      "Status",
+    ];
+    doc.fontSize(10).font("Helvetica-Bold");
+    headers.forEach((h, i) => {
+      doc.text(h, colX[i], tableTop, { width: colWidths[i], align: "left" });
+    });
+
+    // garis bawah header
+    doc
+      .moveTo(colX[0], tableTop + 15)
+      .lineTo(
+        colX[colX.length - 1] + colWidths[colWidths.length - 1],
+        tableTop + 15
+      )
+      .stroke();
+
+    // isi tabel
+    doc.font("Helvetica").fontSize(9);
+    let y = tableTop + 20;
+
+    data.forEach((o, idx) => {
+      const row = [
+        String(idx + 1),
+        `${o.customerName} (${o.customerPhone})`,
+        o.deviceModel || "-",
+        o.damage || "-",
+        o.repairTime || "-",
+        String(o.totalCost || 0),
+        o.status || "-",
+      ];
+
+      row.forEach((text, i) => {
+        doc.text(text, colX[i], y, { width: colWidths[i], align: "left" });
+      });
+
+      y += 20;
+
+      // kalau udah mau habis halaman
+      if (y > doc.page.height - 50) {
+        doc.addPage();
+        y = tableTop;
+      }
+    });
+
+    doc.end();
+    const buffer = await endPromise;
+    return { buffer, format: "pdf" };
+  }
 };
 
 const generateInvoice = async (orderId) => {

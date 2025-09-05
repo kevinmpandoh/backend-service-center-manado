@@ -12,14 +12,14 @@ const login = async (data) => {
   const user = await User.findOne({ username });
 
   if (!user)
-    throw new ResponseError(401, "Email / Password salah", {
-      email_password: "Email / Password salah",
+    throw new ResponseError(401, "Username / Password salah", {
+      email_password: "Username / Password salah",
     });
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch)
-    throw new ResponseError(401, "Email/ Password salah", {
-      email_password: "Email / Password salah",
+    throw new ResponseError(401, "Username / Password salah", {
+      email_password: "Username / Password salah",
     });
 
   const token = generateToken({
