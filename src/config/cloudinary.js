@@ -19,3 +19,18 @@ export const streamUpload = (fileBuffer) => {
     stream.end(fileBuffer);
   });
 };
+
+export const deleteFromCloud = async (fileUrl) => {
+  try {
+    // contoh: https://res.cloudinary.com/demo/image/upload/v1692111111/profile/abcd1234.jpg
+    // ambil "profile/abcd1234" sebagai public_id
+    const parts = fileUrl.split("/");
+    const fileWithExt = parts.slice(-2).join("/"); // "profile/abcd1234.jpg"
+    const publicId = fileWithExt.substring(0, fileWithExt.lastIndexOf(".")); // "profile/abcd1234"
+
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result;
+  } catch (err) {
+    throw new Error("Gagal menghapus file dari Cloudinary: " + err.message);
+  }
+};

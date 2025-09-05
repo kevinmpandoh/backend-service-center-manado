@@ -4,14 +4,26 @@ import mongoose from "mongoose";
 const serviceOrderSchema = new mongoose.Schema(
   {
     customer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
-      required: true,
+      name: { type: String, required: true },
+      phone: { type: String },
     },
     device: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Device",
-      required: true,
+      category: {
+        type: String,
+        enum: ["HP", "Laptop", "Tablet", "Lain-lain"],
+        required: true,
+      },
+      brand: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Brand",
+        required: true,
+      },
+      model: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "DeviceModel",
+        required: true,
+      },
+      accessories: { type: String },
     },
     technician: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // optional
     status: {
@@ -19,21 +31,19 @@ const serviceOrderSchema = new mongoose.Schema(
       enum: [
         "diterima",
         "diperbaiki",
-        "menunggu_pembayaran",
-        "siap_diambil",
-        "diambil",
+        "menunggu pembayaran",
+        "siap diambil",
+        "selesai",
         "batal",
       ],
       default: "diterima",
     },
 
     // Tingkat kerusakan
-    damageLevel: {
-      type: String,
-      enum: ["Ringan", "Sedang", "Berat"],
-      default: "Ringan",
-    },
+
     damageIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "DamageType" }],
+    damage: { type: mongoose.Schema.Types.ObjectId, ref: "DamageType" },
+
     customDamageNote: {
       type: String,
       default: "", // Catatan kerusakan khusus dari pelanggan
@@ -64,12 +74,15 @@ const serviceOrderSchema = new mongoose.Schema(
         enum: ["hari", "bulan", "tahun"],
         default: "bulan",
       },
+      endDate: Date, // tanggal akhir garansi
     },
-
-    serviceNotes: String,
     totalCost: { type: Number, default: 0 },
     totalPaid: { type: Number, default: 0 },
     isFullPaid: { type: Boolean, default: false },
+    serviceDetails: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "ServiceDetail" },
+    ],
+    payments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Payment" }],
   },
   { timestamps: true }
 );

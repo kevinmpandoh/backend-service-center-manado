@@ -9,9 +9,23 @@ import { ResponseError } from "../utils/error.js";
 
 const create = async (serviceId, data) => {
   if (data.type === "jasa") {
-    const serviceItem = await serviceItemRepository.findById(data.service_item);
-    if (!serviceItem) throw new ResponseError(404, "Jasa tidak ditemukan");
-    data.price = serviceItem.price;
+    if (data.serviceItem) {
+      // Jasa dari database
+      const serviceItem = await serviceItemRepository.findById(
+        data.serviceItem
+      );
+      if (!serviceItem) throw new ResponseError(404, "Jasa tidak ditemukan");
+
+      data.price = serviceItem.price;
+    } else {
+      // Jasa custom manual dari teknisi
+      if (!data.customServiceName || !data.customPrice) {
+        throw new ResponseError(400, "Nama jasa dan harga harus diisi");
+      }
+      data.customServiceName = data.customServiceName;
+      data.customPrice = data.customPrice;
+    }
+    data.quantity = 1;
   }
 
   if (data.type === "sparepart") {
@@ -30,22 +44,30 @@ const create = async (serviceId, data) => {
     // Kurangi stok
     sparepart.stock -= data.quantity;
     await sparepart.save();
+
     data.price = sparepart.sellPrice;
   }
-  const subtotal = data.price * data.quantity;
+
+  const subtotal = (data.price || data.customPrice) * (data.quantity || 1);
+
   const detail = await repository.create({
     ...data,
     serviceOrder: serviceId,
     subtotal,
   });
 
-  // update total cost order
+  // Update total cost order (sum semua detail)
   const agg = await serviceDetailModel.aggregate([
     { $match: { serviceOrder: detail.serviceOrder } },
     { $group: { _id: "$serviceOrder", total: { $sum: "$subtotal" } } },
   ]);
   const total = agg[0]?.total || 0;
-  await serviceOrderRepository.update(serviceId, { totalCost: total });
+  await serviceOrderRepository.update(serviceId, {
+    $push: {
+      serviceDetails: detail._id,
+    },
+    totalCost: total,
+  });
 
   return detail;
 };
@@ -88,27 +110,17 @@ const getByServiceOrderId = async (id) => {
 };
 
 const update = async (id, data) => {
-  const existing = await repository.findById(id);
-  if (!existing) {
-    throw new ResponseError(404, "Detail layanan tidak ditemukan");
-  }
+  const detail = await repository.findById(id);
+  if (!detail) throw new ResponseError(404, "Service detail tidak ditemukan");
 
-  // Handle stok sparepart jika type = sparepart
-  if (existing.type === "sparepart") {
-    const sparepart = await sparepartRepository.findById(existing.sparepart);
-    if (sparepart) {
-      // Kembalikan stok sebelumnya
-      sparepart.stock += existing.quantity;
-      await sparepart.save();
-    }
-  }
+  if (detail.type === "sparepart") {
+    const sparepart = await sparepartRepository.findById(detail.sparepart);
+    if (!sparepart) throw new ResponseError(404, "Sparepart tidak ditemukan");
 
-  if (data.type === "sparepart") {
-    const sparepart = await sparepartRepository.findById(data.sparepart);
-    if (!sparepart) {
-      throw new ResponseError(404, "Sparepart tidak ditemukan");
-    }
+    // Kembalikan stok lama dulu
+    sparepart.stock += detail.quantity;
 
+    // Validasi stok baru
     if (sparepart.stock < data.quantity) {
       throw new ResponseError(
         400,
@@ -116,21 +128,71 @@ const update = async (id, data) => {
       );
     }
 
-    // Kurangi stok baru
+    // Kurangi stok sesuai quantity baru
     sparepart.stock -= data.quantity;
     await sparepart.save();
 
-    // Set harga otomatis
-    data.price = sparepart.sellPrice;
+    detail.quantity = data.quantity;
+    detail.price = sparepart.sellPrice;
+    detail.subtotal = detail.price * detail.quantity;
   }
 
-  return repository.update(id, data);
+  if (detail.type === "jasa") {
+    if (data.serviceItem) {
+      // update dari master service item
+      detail.serviceItem = data.serviceItem._id;
+      detail.customServiceName = data.serviceItem.name;
+      detail.price = data.serviceItem.price;
+    } else if (data.customServiceName && data.customPrice) {
+      // update manual
+      detail.customServiceName = data.customServiceName;
+      detail.price = data.customPrice;
+    }
+    detail.subtotal = detail.price * (data.quantity || 1);
+  }
+
+  await detail.save();
+
+  // Update total order
+  const agg = await serviceDetailModel.aggregate([
+    { $match: { serviceOrder: detail.serviceOrder } },
+    { $group: { _id: "$serviceOrder", total: { $sum: "$subtotal" } } },
+  ]);
+  const total = agg[0]?.total || 0;
+
+  await serviceOrderRepository.update(detail.serviceOrder, {
+    totalCost: total,
+  });
+
+  return detail;
 };
 
 const remove = async (id) => {
-  const deleted = await repository.remove(id);
-  if (!deleted) throw new ResponseError(404, "Detail layanan tidak ditemukan");
-  return deleted;
+  const detail = await repository.findById(id);
+  if (!detail) throw new ResponseError(404, "Service detail tidak ditemukan");
+
+  if (detail.type === "sparepart") {
+    const sparepart = await sparepartRepository.findById(detail.sparepart);
+    if (sparepart) {
+      // Kembalikan stok
+      sparepart.stock += detail.quantity;
+      await sparepart.save();
+    }
+  }
+
+  await repository.remove(id);
+
+  // Update total order
+  const agg = await serviceDetailModel.aggregate([
+    { $match: { serviceOrder: detail.serviceOrder } },
+    { $group: { _id: "$serviceOrder", total: { $sum: "$subtotal" } } },
+  ]);
+  const total = agg[0]?.total || 0;
+  await serviceOrderRepository.update(detail.serviceOrder, {
+    totalCost: total,
+  });
+
+  return { message: "Service detail berhasil dihapus" };
 };
 
 export default {

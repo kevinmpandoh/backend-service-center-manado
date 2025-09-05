@@ -6,6 +6,7 @@ import { upload } from "../middleware/upload.middleware.js";
 const router = Router();
 
 router.get("/", paymentController.findAll);
+router.post("/upload", upload.single("proofImage"), paymentController.upload);
 router.get("/:id", paymentController.findById);
 router.get("/:orderId", paymentController.findById);
 router.get("/:id/receipt", paymentController.getReceipt);

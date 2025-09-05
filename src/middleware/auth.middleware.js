@@ -13,7 +13,6 @@ export const authenticate = async (req, res, next) => {
     if (!decoded) {
       throw new ResponseError(401, "Token tidak valid.");
     }
-
     const user = await User.findById(decoded.id);
 
     if (!user) {

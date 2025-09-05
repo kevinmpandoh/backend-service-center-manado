@@ -8,6 +8,8 @@ const createUserSchema = Joi.object({
     "string.empty": "Username wajib diisi",
     "string.min": "Username minimal 3 karakter",
   }),
+  email: Joi.string().email().optional(),
+  phone: Joi.string().optional(),
   password: Joi.string().min(6).required().messages({
     "string.empty": "Password wajib diisi",
     "string.min": "Password minimal 6 karakter",
@@ -18,6 +20,8 @@ const createUserSchema = Joi.object({
 export const updateUserSchema = Joi.object({
   name: Joi.string().optional(),
   username: Joi.string().min(3).optional(),
+  phone: Joi.string().optional(),
+  email: Joi.string().email().optional(),
   role: Joi.string().valid("admin", "teknisi", "sparepart").optional(),
 });
 

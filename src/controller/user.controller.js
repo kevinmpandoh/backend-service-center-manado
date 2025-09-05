@@ -24,7 +24,6 @@ const getAll = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const newUser = await userService.create(req.body);
-
     res.status(201).json({
       status: "Success",
       message: "Pengguna berhasil dibuat",

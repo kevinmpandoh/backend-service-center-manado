@@ -1,4 +1,5 @@
 // src/controller/payment.controller.js
+import { streamUpload } from "../config/cloudinary.js";
 import paymentService from "../service/payment.service.js";
 import {
   addPaymentDPSchema,
@@ -9,10 +10,12 @@ import { validate } from "../validation/validate.js";
 
 const create = async (req, res, next) => {
   try {
+    console.log(req.body);
     const data = validate(addPaymentSchema, req.body);
+    console.log(data, "DATANYA");
     const orderId = req.params.orderId;
 
-    const result = await paymentService.create(orderId, data, req.file);
+    const result = await paymentService.create(orderId, data);
     res
       .status(201)
       .json({ message: "Pembayaran berhasil dibuat", data: result });
@@ -20,6 +23,19 @@ const create = async (req, res, next) => {
     next(err);
   }
 };
+
+const upload = async (req, res, next) => {
+  try {
+    if (!req.file)
+      return res.status(400).json({ message: "File tidak ditemukan" });
+
+    const result = await streamUpload(req.file.buffer, "payments");
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const addPaymentDP = async (req, res, next) => {
   try {
     const data = validate(addPaymentDPSchema, req.body);
@@ -108,6 +124,7 @@ const remove = async (req, res, next) => {
 
 export default {
   create,
+  upload,
   addPaymentDP,
   addPaymentFinal,
   findAll,

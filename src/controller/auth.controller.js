@@ -3,8 +3,8 @@ import userService from "../service/user.service.js";
 
 const login = async (req, res, next) => {
   try {
-    const token = await authService.login(req.body);
-    res.cookie("token", token, {
+    const data = await authService.login(req.body);
+    res.cookie("token", data.token, {
       httpOnly: true,
       secure: true, // hanya secure di production
       sameSite: "none", // cross domain
@@ -13,7 +13,7 @@ const login = async (req, res, next) => {
     res.json({
       status: "success",
       message: "Login berhasil",
-      token,
+      data,
     });
   } catch (error) {
     next(error);
@@ -62,6 +62,24 @@ const update = async (req, res, next) => {
   }
 };
 
+const updatePhoto = async (req, res, next) => {
+  try {
+    const data = await userService.updatePhoto(req.user._id, req.file);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deletePhoto = async (req, res, next) => {
+  try {
+    const data = await userService.deletePhoto(req.user._id);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const changePassword = async (req, res, next) => {
   try {
     const id = req.user._id;
@@ -81,5 +99,7 @@ export default {
   logout,
   get,
   update,
+  updatePhoto,
+  deletePhoto,
   changePassword,
 };

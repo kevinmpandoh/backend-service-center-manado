@@ -20,6 +20,7 @@ export const create = async (req, res, next) => {
 
 export const getAll = async (req, res, next) => {
   try {
+    console.log(req.query);
     const { page, limit, search, brand } = req.query;
     const result = await deviceModelService.getAll({
       page,

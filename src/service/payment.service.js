@@ -4,40 +4,36 @@ import paymentRepository from "../repository/payment.repository.js";
 import serviceOrderRepository from "../repository/service-order.repository.js";
 import { streamUpload } from "../config/cloudinary.js";
 
-const create = async (orderId, data, file) => {
-  const serviceOrder = await serviceOrderRepository.findById(data.serviceOrder);
-  if (!serviceOrder) {
-    throw new ResponseError(404, "Service order tidak ditemukan");
-  }
+const create = async (orderId, data) => {
+  const order = await serviceOrderRepository.findById(orderId);
+  if (!order) throw new ResponseError(404, "Service order not found");
 
   // Jika metode transfer, bukti wajib
-  if (data.method === "transfer") {
-    if (!file) throw new ResponseError(400, "Bukti transfer wajib diunggah");
-    // upload ke Cloudinary
-    const streamUpload = (fileBuffer) => {
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "payments" },
-          (error, result) => {
-            if (result) resolve(result);
-            else reject(error);
-          }
-        );
-        stream.end(fileBuffer);
-      });
-    };
-
-    const uploaded = await streamUpload(file.buffer);
-    data.proof_url = uploaded.secure_url;
+  if (data.paymentMethod === "transfer" && !data.paymentProof) {
+    throw new ResponseError(400, "Bukti pembayaran harus diisi jika transfer");
   }
 
-  if (data.method === "CASH") {
-    // abaikan proof_url meskipun dikirim
-    delete data.proof_url;
+  const payment = await paymentRepository.create({
+    serviceOrder: orderId,
+    method: data.paymentMethod,
+    amount: data.amount || order.totalCost,
+    paymentProof: data.paymentProof || null,
+  });
+
+  // push ke service order
+  order.payments.push(payment._id);
+
+  // update totalPaid
+  order.totalPaid = (order.totalPaid || 0) + (data.amount || order.totalCost);
+
+  // update status jika sudah lunas
+  if (order.totalPaid >= order.totalCost) {
+    order.status = "siap diambil";
   }
 
-  return paymentRepository.createPayment(orderId, data);
-  // }
+  await order.save();
+
+  return payment;
 };
 
 const addPaymentDP = async (orderId, data, file) => {
@@ -93,7 +89,7 @@ const addPaymentFinal = async (orderId, data, file) => {
   });
 
   await serviceOrderRepository.update(orderId, {
-    status: "siap_diambil",
+    status: "siap diambil",
   });
 
   return payment;

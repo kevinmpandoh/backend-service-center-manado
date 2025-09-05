@@ -1,11 +1,10 @@
 import Joi from "joi";
 
 export const addPaymentSchema = Joi.object({
-  amount: Joi.number().positive().required(),
-  payment_type: Joi.string().valid("DP", "FULL").required(),
-  method: Joi.string().valid("CASH", "TRANSFER").required(),
-  proof_url: Joi.string().uri().when("method", {
-    is: "TRANSFER",
+  paymentMethod: Joi.string().valid("cash", "transfer").required(),
+  // amount: Joi.number().min(1).required(),
+  paymentProof: Joi.string().uri().when("paymentMethod", {
+    is: "transfer",
     then: Joi.required(),
     otherwise: Joi.forbidden(),
   }),

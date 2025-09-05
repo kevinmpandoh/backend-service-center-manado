@@ -8,12 +8,15 @@ import customerRouter from "./customer.routes.js";
 import deviceRouter from "./device.routes.js";
 import serviceOrderRouter from "./service-order.routes.js";
 import sparepartRouter from "./sparepart.routes.js";
+import serviceItemRouter from "./service-item.route.js";
 import serviceDetailRouter from "./service-detail.routes.js";
 import paymentRouter from "./payment.routes.js";
+import dashboardRouter from "./dashboard.routes.js";
 
 const router = Router();
 
 router.use("/users", userRouter);
+router.use("/dashboard", dashboardRouter);
 router.use("/auth", authRouter);
 router.use("/brands", brandRouter);
 router.use("/device-models", deviceModelRouter);
@@ -22,6 +25,7 @@ router.use("/customers", customerRouter);
 router.use("/devices", deviceRouter);
 router.use("/service-orders", serviceOrderRouter);
 router.use("/spareparts", sparepartRouter);
+router.use("/service-items", serviceItemRouter);
 router.use("/service-details", serviceDetailRouter);
 router.use("/payments", paymentRouter);
 

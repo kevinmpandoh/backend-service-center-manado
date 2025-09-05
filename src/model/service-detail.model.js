@@ -13,13 +13,11 @@ const serviceDetailSchema = new mongoose.Schema(
       enum: ["jasa", "sparepart"],
       required: true,
     },
-    // serviceName: {
-    //   type: String,
-    //   required: function () {
-    //     return this.type === "jasa";
-    //   },
-    // },
+
     serviceItem: { type: mongoose.Schema.Types.ObjectId, ref: "ServiceItem" }, // wajib kalau type=SERVICE
+    customServiceName: String,
+    customPrice: Number,
+
     sparepart: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Sparepart",
@@ -34,7 +32,7 @@ const serviceDetailSchema = new mongoose.Schema(
     },
     price: {
       type: Number,
-      required: true,
+
       min: 0,
     },
     subtotal: { type: Number, required: true },

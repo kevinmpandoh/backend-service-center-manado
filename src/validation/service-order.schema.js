@@ -23,8 +23,7 @@ export const createServiceOrderSchema = Joi.object({
       .required(),
     brand: Joi.string().custom(objectId).required(),
     model: Joi.string().custom(objectId).required(),
-    customDamageNote: Joi.string().allow(""),
-    completeness: Joi.string().default("Lengkap"),
+    accessories: Joi.string().allow(""),
   }).required(),
 
   damageIds: Joi.array().items(Joi.string().custom(objectId)).required(),
@@ -64,6 +63,35 @@ export const addDetailSchema = Joi.object({
 export const updateServiceOrderSchema = createServiceOrderSchema;
 
 export const updateWarrantySchema = Joi.object({
-  warrantyPeriod: Joi.string().required(),
-  warrantyNote: Joi.string().allow(""),
+  duration: Joi.number().min(1).required(),
+  unit: Joi.string().valid("hari", "bulan", "tahun").default("hari"),
+  endDate: Joi.date().optional(),
+});
+
+export const validateServiceOrder = Joi.object({
+  customer: Joi.object({
+    name: Joi.string().required(),
+    phone: Joi.string().allow(""),
+  }).required(),
+  device: Joi.object({
+    category: Joi.string()
+      .valid("HP", "Laptop", "Tablet", "Lain-lain")
+      .required(),
+    brand: Joi.string().required(),
+    model: Joi.string().required(),
+    accessories: Joi.string().allow(""),
+  }).required(),
+  damage: Joi.string().required(),
+  // severity: Joi.string().valid("Ringan", "Sedang", "Berat").required(),
+  estimatedCost: Joi.number().required(),
+  estimatedTime: Joi.string().required(),
+  downPayment: Joi.object({
+    method: Joi.string().valid("cash", "transfer").required(),
+    amount: Joi.number().required(),
+    proofUrl: Joi.string()
+      .uri()
+      .when("method", { is: "transfer", then: Joi.required() }),
+  })
+    .allow(null)
+    .optional(),
 });
