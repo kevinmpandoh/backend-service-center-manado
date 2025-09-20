@@ -15,9 +15,9 @@ const runSeeder = async () => {
     await mongoose.connect(MONGO_URL);
     console.log("✅ Connected to MongoDB");
 
-    // await seedBrands();
-    // await seedDeviceModels();
-    // await seedUsers();
+    await seedBrands();
+    await seedDeviceModels();
+    await seedUsers();
     await seedDamageTypes();
 
     console.log("🎉 All seeders executed successfully!");

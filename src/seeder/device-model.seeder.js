@@ -2,6 +2,8 @@ import deviceModelModel from "../model/device-model.model.js";
 import Brand from "../model/brand.model.js";
 
 export const seedDeviceModels = async () => {
+  await deviceModelModel.deleteMany({});
+  console.log("Deleted all old deviceModels");
   const data = [
     { brand: "Asus", type: "Laptop", models: ["ROG Strix", "Vivobook"] },
     {
@@ -131,8 +133,6 @@ export const seedDeviceModels = async () => {
         "Note 30I",
       ],
     },
-    { brand: "Apple", type: "HP", models: ["iPhone 14", "iPhone 15 Pro"] },
-    { brand: "Apple", type: "HP", models: ["iPhone 14", "iPhone 15 Pro"] },
     {
       brand: "Asus",
       type: "Laptop",

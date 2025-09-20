@@ -12,8 +12,13 @@ const updateById = (id, data) =>
   Brand.findByIdAndUpdate(id, data, { new: true });
 const deleteById = (id) => Brand.findByIdAndDelete(id);
 
+const findByNameAndType = (name, type) => {
+  return Brand.findOne({ name, type });
+};
+
 export default {
   create,
+  findByNameAndType,
   findAll,
   find,
   count,
