@@ -3,8 +3,8 @@ import Brand from "../model/brand.model.js";
 
 const create = (data) => Brand.create(data);
 const findAll = () => Brand.find();
-const find = (query, skip = 0, limit = 10) =>
-  Brand.find(query).skip(skip).limit(limit).sort({ name: 1 });
+const find = (query, skip = 0) =>
+  Brand.find(query).skip(skip).sort({ name: 1 });
 
 const count = (query) => Brand.countDocuments(query);
 const findById = (id) => Brand.findById(id);

@@ -74,6 +74,15 @@ const getById = async (id) => {
     throw new ResponseError(404, "Device model tidak ditemukan");
   return deviceModel;
 };
+const getByBrandId = async ({ brand }) => {
+  const deviceModel = await deviceModelModel.find({
+    brand,
+  });
+
+  console.log(deviceModel, brand, "TESTING");
+
+  return deviceModel;
+};
 
 const update = async (id, data) => {
   let brand;
@@ -117,6 +126,7 @@ export default {
   create,
   getAll,
   getById,
+  getByBrandId,
   update,
   remove,
 };

@@ -22,8 +22,8 @@ export const create = async (req, res, next) => {
 
 export const getAll = async (req, res, next) => {
   try {
-    const { page, limit, search, type } = req.query;
-    const result = await brandService.getAll({ page, limit, search, type });
+    const { page, search, type } = req.query;
+    const result = await brandService.getAll({ page, search, type });
     res.json({
       status: "Success",
       data: result.data,

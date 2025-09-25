@@ -33,6 +33,21 @@ export const getAll = async (req, res, next) => {
     next(error);
   }
 };
+export const getByBrandId = async (req, res, next) => {
+  try {
+    console.log(req.query);
+    const { brand } = req.query;
+    const result = await deviceModelService.getByBrandId({
+      brand,
+    });
+    res.json({
+      message: "Success",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getById = async (req, res, next) => {
   try {

@@ -10,10 +10,10 @@ const create = async (data) => {
   return brandRepository.create(data);
 };
 
-const getAll = async ({ page = 1, limit = 10, search = "", type }) => {
+const getAll = async ({ page = 1, search = "", type }) => {
   page = parseInt(page);
-  limit = parseInt(limit);
-  const skip = (page - 1) * limit;
+
+  const skip = page - 1;
 
   const query = {};
 
@@ -27,7 +27,7 @@ const getAll = async ({ page = 1, limit = 10, search = "", type }) => {
 
   const [total, data] = await Promise.all([
     brandRepository.count(query),
-    brandRepository.find(query, skip, limit),
+    brandRepository.find(query, skip),
   ]);
 
   return {
@@ -35,8 +35,8 @@ const getAll = async ({ page = 1, limit = 10, search = "", type }) => {
     pagination: {
       total,
       page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+
+      totalPages: Math.ceil(total),
     },
   };
 };
