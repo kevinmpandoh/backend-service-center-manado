@@ -8,7 +8,7 @@ const paymentSchema = new mongoose.Schema(
       ref: "ServiceOrder",
       required: true,
     },
-    amount: { type: Number, required: true },
+    // amount: { type: Number, required: true },
     method: { type: String, enum: ["cash", "transfer"], required: true },
     amount: { type: Number, required: true },
     paymentProof: { type: String }, // simpan URL Cloudinary kalau transfer
