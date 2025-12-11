@@ -12,13 +12,13 @@ export const seedUsers = async () => {
     },
     {
       name: "Teknisi Kevin",
-      username: "kevin",
+      username: "teknisi",
       password: await bcrypt.hash("password", 10),
       role: "teknisi",
     },
     {
       name: "Sparepart Sashi",
-      username: "sashi",
+      username: "pengelolasparepart",
       password: await bcrypt.hash("password", 10),
       role: "sparepart",
     },

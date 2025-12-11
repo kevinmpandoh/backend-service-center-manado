@@ -3,6 +3,7 @@ import { ResponseError } from "../utils/error.js";
 import paymentRepository from "../repository/payment.repository.js";
 import serviceOrderRepository from "../repository/service-order.repository.js";
 import { streamUpload } from "../config/cloudinary.js";
+import { sendWhatsApp } from "./notification.service.js";
 
 const create = async (orderId, data) => {
   const order = await serviceOrderRepository.findById(orderId);
@@ -32,6 +33,13 @@ const create = async (orderId, data) => {
   }
 
   await order.save();
+
+  await sendWhatsApp(
+    order.customer.phone,
+    `Pembayaran sebesar Rp ${payment.amount.toLocaleString(
+      "id-ID"
+    )} untuk service order Anda telah diterima. Terima kasih!`
+  );
 
   return payment;
 };

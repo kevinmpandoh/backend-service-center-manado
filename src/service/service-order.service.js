@@ -101,7 +101,7 @@ const markAsCompleted = async (id, payload) => {
   // Kirim notifikasi otomatis
   const name = order.customer.name;
   const phone = order.customer.phone;
-  const msg = `Halo ${name}, service perangkat Anda telah selesai. Silakan datang untuk pengambilan.`;
+  const msg = `Halo ${name}, service perangkat anda ${order.device.brand.name} ${order.device.model.name} dengan kerusakan ${order.damage.name} telah selesai. Silakan datang untuk pengambilan.`;
 
   await sendWhatsApp(phone, msg);
 
@@ -123,7 +123,7 @@ const markAsPickedUp = async (id) => {
   // Kirim notifikasi otomatis
   const phone = order.customer.phone;
   const name = order.customer.name;
-  const msg = `Terima kasih ${name}, perangkat Anda sudah diambil. Jika ada kendala, silakan hubungi kami`;
+  const msg = `Terima kasih ${name}, perangkat Anda sudah diambil. Jika ada kendala, silakan hubungi A+ Service Center di 0811-4377-700.`;
 
   await sendWhatsApp(phone, msg);
 
@@ -861,6 +861,7 @@ const generateInvoice = async (orderId) => {
 
   // ========== BIAYA DAN SYARAT ==========
   doc.fontSize(12).text("BIAYA :", 40, 350);
+  doc.fontSize(12).text(`Rp ${order.totalCost || 0}`, 85, 350);
 
   let biayaStartY = 350 + 20;
 
@@ -914,11 +915,32 @@ const generateInvoice = async (orderId) => {
     "90 HARI",
     "NON GARANSI",
   ];
+
+  // Map warranty duration to options
+  let selectedGaransi = null;
+  if (order.warranty?.duration && order.warranty?.unit === "day") {
+    selectedGaransi = `${order.warranty.duration} HARI`;
+  }
+
   garansiOptions.forEach((opt, idx) => {
     const x = rightColX + (idx % 2) * 130;
     const y = rightY + Math.floor(idx / 2) * 25;
 
     doc.rect(x, y, 10, 10).stroke();
+
+    // Check if this option matches warranty
+    const isChecked = selectedGaransi === opt;
+    if (isChecked) {
+      doc
+        .moveTo(x, y)
+        .lineTo(x + 10, y + 10)
+        .stroke();
+      doc
+        .moveTo(x + 10, y)
+        .lineTo(x, y + 10)
+        .stroke();
+    }
+
     doc.fontSize(12).text(opt, x + 15, y - 2);
   });
 
@@ -932,11 +954,29 @@ const generateInvoice = async (orderId) => {
   rightY += 25;
 
   const kelengkapanOptions = ["SIM CARD", "BATERAI", "CASING/CASE", "MMC"];
+  const accessories = [];
+
   kelengkapanOptions.forEach((opt, idx) => {
     const x = rightColX + (idx % 2) * 130;
     const y = rightY + Math.floor(idx / 2) * 25;
 
     doc.rect(x, y, 10, 10).stroke();
+
+    // Check if this accessory exists in order
+    const isChecked = accessories.some(
+      (acc) => acc.toLowerCase() === opt.toLowerCase()
+    );
+    if (isChecked) {
+      doc
+        .moveTo(x, y)
+        .lineTo(x + 10, y + 10)
+        .stroke();
+      doc
+        .moveTo(x + 10, y)
+        .lineTo(x, y + 10)
+        .stroke();
+    }
+
     doc.fontSize(12).text(opt, x + 15, y - 2);
   });
 
@@ -951,10 +991,16 @@ const generateInvoice = async (orderId) => {
   doc.font("Helvetica").fontSize(11);
   doc.text("Hormat Kami,", rightColX, rightY);
   doc.text("Konsumen,", rightColX + 150, rightY);
+  doc.image(path.resolve("public/paraf.png"), rightColX - 20, footerY - 30, {
+    width: 100,
+  });
 
   footerY += 60;
-  doc.text("(____________)", rightColX - 10, rightY + 60);
-  doc.text(`(____________)`, rightColX + 140, rightY + 60);
+  // doc.image(path.resolve("public/signature_customer.png"), rightColX + 150, footerY, {
+  //   width: 100,
+  // });
+  doc.text("(A+ Service Center)", rightColX - 10, rightY + 60);
+  doc.text(`(${order.customer.name})`, rightColX + 140, rightY + 60);
 
   doc
     .fontSize(14)
