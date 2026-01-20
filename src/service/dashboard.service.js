@@ -322,19 +322,20 @@ const getAdminDashboard = async () => {
     .find()
     .sort({ createdAt: -1 })
     .limit(5)
-
     .populate("device.brand")
     .populate("device.model")
     .populate("damage")
     .populate("technician");
 
+  console.log(recentOrders);
+
   const history = recentOrders.map((o, idx) => ({
     no: idx + 1,
-    customer: o.customer.name,
-    phone: o.customer.phone,
-    device: `${o.device.brand.name} ${o.device.model.name}`,
+    customer: o.customer?.name,
+    phone: o.customer?.phone,
+    device: `${o.device.brand?.name} ${o.device.model?.name}`,
     technician: o.technician?.name || "-",
-    damage: o.damage.name,
+    damage: o.damage?.name,
     status: o.status,
     time: o.estimatedTime,
     total: o.totalPaid,
